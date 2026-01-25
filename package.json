@@ -1,0 +1,49 @@
+{
+  "name": "verity-sdk",
+  "version": "1.0.0",
+  "description": "TypeScript/JavaScript SDK for Verity API - Medicare coverage policies and prior authorization",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "module": "dist/index.mjs",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "test": "node test/basic.js",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "verity",
+    "medicare",
+    "healthcare",
+    "prior-authorization",
+    "medical-codes",
+    "coverage-policy"
+  ],
+  "author": "Verity",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tylerbryy/verity-ts.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tylerbryy/verity-ts/issues"
+  },
+  "homepage": "https://verity.backworkai.com",
+  "devDependencies": {
+    "@types/node": "^20.19.30",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=14"
+  }
+}

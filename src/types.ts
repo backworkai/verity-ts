@@ -1,0 +1,276 @@
+/**
+ * Common types for Verity SDK
+ */
+
+export interface VerityConfig {
+  apiKey: string;
+  baseUrl?: string;
+  timeout?: number;
+}
+
+export interface ErrorResponse {
+  success: false;
+  error: {
+    code: string;
+    message: string;
+    hint?: string;
+    details?: Record<string, any>;
+    docUrl?: string;
+  };
+  meta?: {
+    request_id?: string;
+    timestamp?: string;
+  };
+}
+
+export interface SuccessResponse<T> {
+  success: true;
+  data: T;
+  meta?: Record<string, any>;
+}
+
+export type ApiResponse<T> = SuccessResponse<T> | ErrorResponse;
+
+export interface Pagination {
+  cursor: string | null;
+  has_more: boolean;
+  limit: number;
+}
+
+export interface HealthStatus {
+  status: 'healthy' | 'degraded' | 'unhealthy';
+  version: string;
+  checks: {
+    database: {
+      status: string;
+      latency_ms?: number;
+    };
+    redis: {
+      status: string;
+    };
+    redis_cache: {
+      status: string;
+    };
+  };
+  timestamp: string;
+}
+
+export interface CodeLookupData {
+  code: string;
+  code_system: 'CPT' | 'HCPCS' | 'ICD10CM' | 'ICD10PCS' | 'NDC' | 'unknown';
+  found: boolean;
+  description: string | null;
+  short_description?: string | null;
+  category?: string | null;
+  betos_code?: string | null;
+  poa_exempt?: boolean | null;
+  is_active?: boolean | null;
+  rvu?: RvuData;
+  policies?: PolicyMatch[];
+  suggestions?: CodeSuggestion[];
+  ndc_crosswalk?: NdcCrosswalk;
+}
+
+export interface RvuData {
+  work_rvu?: string | null;
+  pe_rvu_nonfacility?: string | null;
+  pe_rvu_facility?: string | null;
+  mp_rvu?: string | null;
+  total_rvu_nonfacility?: string | null;
+  total_rvu_facility?: string | null;
+  non_facility_price?: string | null;
+  facility_price?: string | null;
+  conversion_factor?: string | null;
+  global_days?: string | null;
+  status_code?: string | null;
+  year?: number;
+}
+
+export interface PolicyMatch {
+  policy_id: string;
+  title: string;
+  policy_type: string;
+  disposition: 'covered' | 'not_covered' | 'conditional' | 'requires_pa';
+  jurisdiction?: string | null;
+  effective_date?: string | null;
+}
+
+export interface CodeSuggestion {
+  code: string;
+  code_system: string;
+  description?: string | null;
+  score: number;
+  match_type: 'code' | 'description';
+}
+
+export interface NdcCrosswalk {
+  ndc: string;
+  hcpcs_code: string;
+  hcpcs_description?: string | null;
+  ndc_label?: string | null;
+  route?: string | null;
+  billing_units?: string | null;
+  conversion_factor?: string | null;
+}
+
+export interface PolicyListItem {
+  policy_id: string;
+  title: string;
+  policy_type: string;
+  jurisdiction?: string | null;
+  effective_date?: string | null;
+  retire_date?: string | null;
+  status: 'active' | 'retired';
+  source_url?: string | null;
+  summary?: string | null;
+  codes?: Array<{
+    code: string;
+    code_system: string;
+    disposition: string;
+  }>;
+  code_count?: number;
+}
+
+export interface PolicyDetail {
+  policy_id: string;
+  title: string;
+  policy_type: string;
+  jurisdiction?: string | null;
+  effective_date?: string | null;
+  retire_date?: string | null;
+  status: 'active' | 'retired';
+  source_url?: string | null;
+  last_reviewed_date?: string | null;
+  version?: string | null;
+  pdf_url?: string | null;
+  description?: string | null;
+  summary?: string | null;
+  specialty?: string[] | null;
+  keywords?: string[] | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  sections?: {
+    indications?: string | null;
+    limitations?: string | null;
+    documentation?: string | null;
+  };
+  mac?: MacInfo;
+  payer?: PayerInfo;
+  criteria?: Record<string, CriteriaBlock[]>;
+  criteria_count?: number;
+  codes?: Array<{
+    code: string;
+    code_system: string;
+    disposition: string;
+  }>;
+  code_count?: number;
+  attachments?: Attachment[];
+  versions?: VersionEntry[];
+}
+
+export interface MacInfo {
+  name?: string;
+  code?: string;
+  jurisdiction_name?: string;
+  states?: string[];
+}
+
+export interface PayerInfo {
+  name?: string;
+  code?: string;
+  type?: string;
+}
+
+export interface CriteriaBlock {
+  block_id?: string;
+  text?: string;
+  logic_ast?: Record<string, any> | null;
+  tags?: string[];
+  requires_manual_review?: boolean;
+  confidence_score?: number;
+}
+
+export interface Attachment {
+  file_type?: string;
+  url?: string;
+  title?: string | null;
+  page_number?: number | null;
+  file_size_bytes?: number | null;
+}
+
+export interface VersionEntry {
+  old_version?: string | null;
+  new_version?: string | null;
+  change_type?: string;
+  change_summary?: string | null;
+  changed_fields?: string[] | null;
+  timestamp?: string | null;
+}
+
+export interface PriorAuthResult {
+  pa_required: boolean;
+  confidence: 'high' | 'medium' | 'low';
+  reason: string;
+  matched_policies?: Array<{
+    policy_id: string;
+    title: string;
+    policy_type: string;
+    jurisdiction?: string | null;
+    codes: Array<{
+      code: string;
+      code_system: string;
+      disposition: string;
+      condition_reference?: string | null;
+    }>;
+  }>;
+  documentation_checklist?: string[];
+  criteria_details?: {
+    indications?: Array<{
+      text: string;
+      tags: string[];
+      policy_id?: string | null;
+    }>;
+    limitations?: Array<{
+      text: string;
+      tags: string[];
+      policy_id?: string | null;
+    }>;
+    pagination?: {
+      page: number;
+      per_page: number;
+      indications?: {
+        total: number;
+        total_pages: number;
+        has_next: boolean;
+        has_previous: boolean;
+      };
+      limitations?: {
+        total: number;
+        total_pages: number;
+        has_next: boolean;
+        has_previous: boolean;
+      };
+      documentation?: {
+        total: number;
+        total_pages: number;
+        has_next: boolean;
+        has_previous: boolean;
+      };
+    };
+  };
+  mac?: {
+    name?: string;
+    jurisdiction?: string;
+    states?: string[];
+  } | null;
+}
+
+export interface Jurisdiction {
+  mac_name: string;
+  mac_code?: string;
+  jurisdiction_code: string;
+  jurisdiction_name?: string;
+  states?: string[];
+  mac_type?: string;
+  website_url?: string;
+}
