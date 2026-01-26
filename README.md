@@ -5,17 +5,17 @@ TypeScript/JavaScript client library for the [Verity API](https://verity.backwor
 ## Installation
 
 ```bash
-npm install verity-sdk
+npm install verity-api
 # or
-yarn add verity-sdk
+yarn add verity-api
 # or
-pnpm add verity-sdk
+pnpm add verity-api
 ```
 
 ## Quick Start
 
 ```typescript
-import { VerityClient } from 'verity-sdk';
+import { VerityClient } from 'verity-api';
 
 // Initialize the client
 const client = new VerityClient('vrt_live_YOUR_API_KEY');
@@ -178,7 +178,7 @@ import {
   NotFoundError,
   RateLimitError,
   VerityError,
-} from 'verity-sdk';
+} from 'verity-api';
 
 try {
   const result = await client.lookupCode({ code: '76942' });
@@ -201,7 +201,7 @@ try {
 
 ```html
 <script type="module">
-  import { VerityClient } from 'https://cdn.skypack.dev/verity-sdk';
+  import { VerityClient } from 'https://cdn.skypack.dev/verity-api';
   
   const client = new VerityClient('vrt_live_YOUR_API_KEY');
   const result = await client.lookupCode({ code: '76942' });
