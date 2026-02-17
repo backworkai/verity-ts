@@ -274,3 +274,64 @@ export interface Jurisdiction {
   mac_type?: string;
   website_url?: string;
 }
+
+export interface PriorAuthResearchRequest {
+  procedureCodes: string[];
+  payer?: string;
+  state?: string;
+  diagnosisCodes?: string[];
+  clinicalContext?: string;
+  sync?: boolean;
+}
+
+export interface PriorAuthResearchResult {
+  research_id: string;
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'canceled';
+  created_at: string;
+  finished_at?: string;
+  poll_url?: string;
+  result?: {
+    determination: {
+      pa_required: boolean;
+      confidence: string;
+      reasoning: string;
+    };
+    payer_policies?: Array<{
+      title: string;
+      url?: string;
+      summary?: string;
+    }>;
+    documentation_requirements?: string[];
+    medical_necessity_criteria?: string[];
+    coverage_limitations?: string[];
+    timeline?: string;
+    appeal_process?: string;
+    sources?: string[];
+  };
+  cost?: {
+    num_searches: number;
+    num_pages: number;
+    reasoning_tokens: number;
+    total_dollars: number;
+  };
+  error?: string;
+}
+
+export interface SpendingByCodeData {
+  [code: string]: {
+    total_paid: string;
+    total_claims: number;
+    unique_beneficiaries: number;
+    unique_providers: number;
+    date_range: {
+      min: string | null;
+      max: string | null;
+    };
+    by_year: Array<{
+      year: number;
+      total_paid: string;
+      total_claims: number;
+      unique_beneficiaries: number;
+    }>;
+  };
+}

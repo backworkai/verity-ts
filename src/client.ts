@@ -6,6 +6,8 @@ import type {
   PolicyListItem,
   PolicyDetail,
   PriorAuthResult,
+  PriorAuthResearchResult,
+  SpendingByCodeData,
   Jurisdiction,
   Pagination,
 } from './types';
@@ -289,5 +291,62 @@ export class VerityClient {
     if (params.state) body.state = params.state;
 
     return this.request<PriorAuthResult>('POST', '/prior-auth/check', { body, headers });
+  }
+
+  /**
+   * Research prior authorization requirements using AI-powered web research.
+   * By default runs asynchronously - returns a research_id for polling.
+   * Set sync: true to wait for completion.
+   */
+  async researchPriorAuth(params: {
+    procedureCodes: string[];
+    payer?: string;
+    state?: string;
+    diagnosisCodes?: string[];
+    clinicalContext?: string;
+    sync?: boolean;
+  }): Promise<ApiResponse<PriorAuthResearchResult>> {
+    const body: Record<string, any> = {
+      procedure_codes: params.procedureCodes,
+    };
+
+    if (params.payer) body.payer = params.payer;
+    if (params.state) body.state = params.state;
+    if (params.diagnosisCodes) body.diagnosis_codes = params.diagnosisCodes;
+    if (params.clinicalContext) body.clinical_context = params.clinicalContext;
+    if (params.sync !== undefined) body.sync = params.sync;
+
+    return this.request<PriorAuthResearchResult>('POST', '/prior-auth/research', { body });
+  }
+
+  /**
+   * Get the status and results of a prior authorization research task.
+   * Poll this until status is "completed" or "failed".
+   */
+  async getPriorAuthResearch(researchId: string): Promise<ApiResponse<PriorAuthResearchResult>> {
+    return this.request<PriorAuthResearchResult>('GET', `/prior-auth/research/${researchId}`);
+  }
+
+  /**
+   * Get Medicaid spending data by HCPCS code.
+   */
+  async getSpendingByCode(params: {
+    code?: string;
+    codes?: string[];
+    year?: number;
+  }): Promise<ApiResponse<SpendingByCodeData>> {
+    const queryParams: Record<string, any> = {};
+
+    if (params.code) {
+      queryParams.code = params.code;
+    } else if (params.codes) {
+      queryParams.codes = params.codes.join(',');
+    }
+
+    if (params.year) {
+      queryParams.year = params.year;
+    }
+
+    return this.request<SpendingByCodeData>('GET', '/spending/by-code', { params: queryParams });
   }
 }
