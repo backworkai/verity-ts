@@ -335,3 +335,58 @@ export interface SpendingByCodeData {
     }>;
   };
 }
+
+export interface BatchCodeLookupParams {
+  codes: string[];
+  codeSystem?: string;
+  include?: string[];
+}
+
+export interface BatchCodeLookupData {
+  results: Record<string, CodeLookupData>;
+}
+
+export interface CoverageEvaluateParams {
+  policyId: string;
+  parameters: Record<string, unknown>;
+}
+
+export interface CoverageEvaluationData {
+  covered: boolean;
+  confidence: number;
+  reasons: string[];
+  matched_criteria: string[];
+  unmatched_criteria: string[];
+  skipped_criteria: string[];
+  blocks_evaluated: number;
+  blocks_without_ast: number;
+  policy: {
+    policy_id: string;
+    title: string;
+    policy_type: string;
+  };
+}
+
+export interface WebhookEndpoint {
+  id: number;
+  url: string;
+  events: string[];
+  status: string;
+  failure_count: number;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface WebhookCreateData extends WebhookEndpoint {
+  secret: string;
+}
+
+export interface WebhookTestData {
+  delivery_id: number;
+  endpoint_id: number;
+  event: string;
+  http_status: number | null;
+  success: boolean;
+  error: string | null;
+  created_at: string | null;
+}

@@ -10,6 +10,13 @@ import type {
   SpendingByCodeData,
   Jurisdiction,
   Pagination,
+  BatchCodeLookupParams,
+  BatchCodeLookupData,
+  CoverageEvaluateParams,
+  CoverageEvaluationData,
+  WebhookEndpoint,
+  WebhookCreateData,
+  WebhookTestData,
 } from './types';
 import { VerityError } from './errors';
 
@@ -151,6 +158,8 @@ export class VerityClient {
     cursor?: string;
     limit?: number;
     include?: Array<'summary' | 'criteria' | 'codes'>;
+    icd10?: string;
+    format?: string;
   }): Promise<ApiResponse<PolicyListItem[]>> {
     const queryParams: Record<string, any> = {
       mode: params?.mode || 'keyword',
@@ -164,6 +173,8 @@ export class VerityClient {
     if (params?.payer) queryParams.payer = params.payer;
     if (params?.cursor) queryParams.cursor = params.cursor;
     if (params?.include) queryParams.include = params.include.join(',');
+    if (params?.icd10) queryParams.icd10 = params.icd10;
+    if (params?.format) queryParams.format = params.format;
 
     return this.request<PolicyListItem[]>('GET', '/policies', { params: queryParams });
   }
@@ -348,5 +359,84 @@ export class VerityClient {
     }
 
     return this.request<SpendingByCodeData>('GET', '/spending/by-code', { params: queryParams });
+  }
+
+  /**
+   * Batch lookup multiple medical codes at once
+   */
+  async batchLookupCodes(params: BatchCodeLookupParams): Promise<ApiResponse<BatchCodeLookupData>> {
+    const body: Record<string, any> = {
+      codes: params.codes,
+    };
+
+    if (params.codeSystem) body.code_system = params.codeSystem;
+    if (params.include) body.include = params.include;
+
+    return this.request<BatchCodeLookupData>('POST', '/codes/batch', { body });
+  }
+
+  /**
+   * Evaluate coverage for a policy against provided parameters
+   */
+  async evaluateCoverage(params: CoverageEvaluateParams): Promise<ApiResponse<CoverageEvaluationData>> {
+    const body: Record<string, any> = {
+      policy_id: params.policyId,
+      parameters: params.parameters,
+    };
+
+    return this.request<CoverageEvaluationData>('POST', '/coverage/evaluate', { body });
+  }
+
+  /**
+   * List all webhook endpoints
+   */
+  async listWebhooks(): Promise<ApiResponse<WebhookEndpoint[]>> {
+    return this.request<WebhookEndpoint[]>('GET', '/webhooks');
+  }
+
+  /**
+   * Create a new webhook endpoint
+   */
+  async createWebhook(params: {
+    url: string;
+    events: string[];
+  }): Promise<ApiResponse<WebhookCreateData>> {
+    const body: Record<string, any> = {
+      url: params.url,
+      events: params.events,
+    };
+
+    return this.request<WebhookCreateData>('POST', '/webhooks', { body });
+  }
+
+  /**
+   * Update an existing webhook endpoint
+   */
+  async updateWebhook(id: number, params: {
+    url?: string;
+    events?: string[];
+    status?: string;
+  }): Promise<ApiResponse<WebhookEndpoint>> {
+    const body: Record<string, any> = {};
+
+    if (params.url) body.url = params.url;
+    if (params.events) body.events = params.events;
+    if (params.status) body.status = params.status;
+
+    return this.request<WebhookEndpoint>('PATCH', `/webhooks/${id}`, { body });
+  }
+
+  /**
+   * Delete a webhook endpoint
+   */
+  async deleteWebhook(id: number): Promise<ApiResponse<void>> {
+    return this.request<void>('DELETE', `/webhooks/${id}`);
+  }
+
+  /**
+   * Send a test event to a webhook endpoint
+   */
+  async testWebhook(id: number): Promise<ApiResponse<WebhookTestData>> {
+    return this.request<WebhookTestData>('POST', `/webhooks/${id}/test`);
   }
 }
