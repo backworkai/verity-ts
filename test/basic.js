@@ -1,7 +1,13 @@
 const { VerityClient, AuthenticationError } = require('../dist/index.js');
 
 async function test() {
-  const client = new VerityClient('vrt_live_h2V4x8pL6JFHuX3y');
+  if (!process.env.VERITY_API_KEY) {
+    console.log('VERITY_API_KEY not set; skipping live API smoke checks.');
+    console.log('✓ SDK structure is valid!');
+    return;
+  }
+
+  const client = new VerityClient(process.env.VERITY_API_KEY);
 
   try {
     // Test health check

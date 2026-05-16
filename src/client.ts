@@ -93,12 +93,18 @@ export class VerityClient {
       headers['Content-Type'] = 'application/json';
     }
 
-    const fetchResponse = Effect.tryPromise({
+    const fetchAttempt = Effect.tryPromise({
       try: () => this.fetchWithTimeout(url.toString(), method, headers, options.body),
       catch: (error) => this.toNetworkError(error),
-    }).pipe(
-      Effect.retry(Schedule.exponential('100 millis').pipe(Schedule.compose(Schedule.recurs(2))))
-    );
+    });
+    const retryableTransportFailure = method === 'GET' || Boolean(headers['X-Idempotency-Key']);
+    const fetchResponse = retryableTransportFailure
+      ? fetchAttempt.pipe(
+          Effect.retry(
+            Schedule.exponential('100 millis').pipe(Schedule.compose(Schedule.recurs(2)))
+          )
+        )
+      : fetchAttempt;
 
     return fetchResponse.pipe(
       Effect.flatMap((response) =>
