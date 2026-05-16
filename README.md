@@ -1,142 +1,83 @@
 # Verity TypeScript SDK
 
-TypeScript/JavaScript client library for the [Verity API](https://verity.backworkai.com) - Medicare coverage policies, prior authorization requirements, and medical code lookups.
+Official TypeScript and JavaScript client for the [Verity API](https://verity.backworkai.com): Medicare coverage policies, medical code intelligence, prior authorization checks, claim validation, compliance review, and drug formulary evidence.
+
+The SDK is Promise-based, fully typed, and uses native `fetch` with an Effect-backed request layer for response parsing, timeouts, and safe retries.
 
 ## Installation
 
 ```bash
 npm install verity-api
-# or
-yarn add verity-api
-# or
-pnpm add verity-api
 ```
+
+Requires Node.js 18 or newer, or a modern browser runtime with `fetch`.
 
 ## Quick Start
 
 ```typescript
 import { VerityClient } from 'verity-api';
 
-// Initialize the client
-const client = new VerityClient('vrt_live_YOUR_API_KEY');
+const client = new VerityClient(process.env.VERITY_API_KEY!);
 
-// Look up a medical code
-const result = await client.lookupCode({
+const code = await client.lookupCode({
   code: '76942',
   include: ['rvu', 'policies'],
 });
-console.log(result.data?.description);
-// Output: "Ultrasonic guidance for needle placement"
 
-// Check prior authorization requirements
-const paCheck = await client.checkPriorAuth({
+console.log(code.data?.description);
+
+const priorAuth = await client.checkPriorAuth({
   procedureCodes: ['76942'],
   diagnosisCodes: ['M54.5'],
   state: 'TX',
-});
-console.log(`PA Required: ${paCheck.data?.pa_required}`);
-
-// Search policies
-const policies = await client.listPolicies({
-  q: 'ultrasound guidance',
-  policyType: 'LCD',
-  limit: 10,
+  payer: 'medicare',
 });
 
-// Get specific policy details
-const policy = await client.getPolicy('L33831', {
-  include: ['criteria', 'codes'],
-});
+console.log(priorAuth.data?.pa_required);
 ```
 
-## Features
+Get an API key from the [Verity dashboard](https://verity.backworkai.com/dashboard).
 
-- **Full TypeScript support** - Complete type definitions included
-- **Works everywhere** - Node.js, browser, and edge runtimes
-- **Tree-shakeable** - ES modules for optimal bundle size
-- **Reliable request layer** - Uses native fetch with Effect-powered retries, timeout handling, and response parsing
-- **Promise-based** - Modern async/await API
-
-## Authentication
-
-Get your API key from the [Verity Dashboard](https://verity.backworkai.com/dashboard).
-
-```typescript
-const client = new VerityClient('vrt_live_YOUR_API_KEY');
-
-// Or with custom config
-const client = new VerityClient({
-  apiKey: 'vrt_live_YOUR_API_KEY',
-  baseUrl: 'https://verity.backworkai.com/api/v1',
-  timeout: 30000, // 30 seconds
-});
-```
-
-## Usage Examples
+## Core Workflows
 
 ### Code Lookup
 
 ```typescript
-// Basic lookup
 const result = await client.lookupCode({
   code: '76942',
-});
-
-// With additional data
-const result = await client.lookupCode({
-  code: '76942',
-  codeSystem: 'HCPCS',
+  codeSystem: 'CPT',
   jurisdiction: 'JM',
-  include: ['rvu', 'policies'],
+  include: ['rvu', 'policies', 'rates'],
   fuzzy: true,
 });
 ```
 
-### Policy Search
+### Policy Search and Retrieval
 
 ```typescript
-// Keyword search
 const policies = await client.listPolicies({
   q: 'ultrasound guidance',
   mode: 'keyword',
   policyType: 'LCD',
   status: 'active',
-  limit: 50,
+  limit: 25,
 });
 
-// Semantic search
-const policies = await client.listPolicies({
-  q: 'imaging guidance for procedures',
-  mode: 'semantic',
+const policy = await client.getPolicy('L33831', {
+  include: ['criteria', 'codes'],
 });
-
-// Pagination
-if (policies.meta?.pagination?.has_more) {
-  const nextPage = await client.listPolicies({
-    cursor: policies.meta.pagination.cursor || undefined,
-  });
-}
 ```
 
-### Prior Authorization
+### Prior Authorization and Claim Validation
 
 ```typescript
-const result = await client.checkPriorAuth({
-  procedureCodes: ['76942', '76937'],
-  diagnosisCodes: ['M54.5', 'G89.29'],
+const priorAuth = await client.checkPriorAuth({
+  procedureCodes: ['76942'],
+  diagnosisCodes: ['M54.5'],
   state: 'TX',
   payer: 'medicare',
 });
 
-if (result.data?.pa_required) {
-  console.log('Prior authorization required!');
-  console.log('Documentation needed:', result.data.documentation_checklist);
-}
-```
-
-### Claim Validation
-
-```typescript
 const claim = await client.validateClaim({
   procedureCodes: ['99213'],
   diagnosisCodes: ['E11.9'],
@@ -144,68 +85,45 @@ const claim = await client.validateClaim({
   state: 'TX',
 });
 
-console.log('Coverage:', claim.data?.coverage_status);
-console.log('Denial risk:', claim.data?.denial_risk);
+console.log(claim.data?.coverage_status, claim.data?.denial_risk);
 ```
 
-### Policy Comparison
-
-```typescript
-const comparison = await client.comparePolicies({
-  procedureCodes: ['76942'],
-  policyType: 'LCD',
-  jurisdictions: ['JM', 'JH', 'JK'],
-});
-
-comparison.data?.comparison?.forEach((juris) => {
-  console.log(`${juris.jurisdiction}: ${juris.policies?.length || 0} policies`);
-});
-```
-
-### Coverage Criteria Search
+### Coverage, Spending, and Compliance
 
 ```typescript
 const criteria = await client.searchCriteria({
   q: 'diabetes',
   section: 'indications',
-  policyType: 'LCD',
-  limit: 25,
+  limit: 10,
 });
-```
 
-### Jurisdictions
-
-```typescript
-const jurisdictions = await client.listJurisdictions();
-jurisdictions.data?.forEach((j) => {
-  console.log(`${j.jurisdiction_code}: ${j.mac_name} (${j.states?.join(', ')})`);
+const spending = await client.getSpendingByCode({
+  codes: ['T1019', 'T1020'],
+  year: 2023,
 });
-```
 
-### Compliance and Drug Formulary
-
-```typescript
 const changes = await client.listUnreviewedChanges({ limit: 10 });
 const stats = await client.getComplianceStats();
+```
 
+### Drug Formulary Evidence
+
+```typescript
 const formulary = await client.searchDrugFormularyEvidence({
   q: 'ozempic',
   payer: 'all',
   limit: 5,
 });
-
-console.log(changes.data, stats.data, formulary.data);
 ```
 
 ## Error Handling
 
 ```typescript
 import {
-  VerityClient,
   AuthenticationError,
-  ValidationError,
   NotFoundError,
   RateLimitError,
+  ValidationError,
   VerityError,
 } from 'verity-api';
 
@@ -215,15 +133,25 @@ try {
   if (error instanceof AuthenticationError) {
     console.error('Invalid API key');
   } else if (error instanceof ValidationError) {
-    console.error('Invalid parameters:', error.message);
+    console.error('Invalid request:', error.message);
   } else if (error instanceof NotFoundError) {
     console.error('Resource not found');
   } else if (error instanceof RateLimitError) {
-    console.error('Rate limit exceeded. Resets at:', error.reset);
+    console.error('Rate limit exceeded:', error.reset);
   } else if (error instanceof VerityError) {
-    console.error('API error:', error.message);
+    console.error('Verity API error:', error.message);
   }
 }
+```
+
+## Configuration
+
+```typescript
+const client = new VerityClient({
+  apiKey: process.env.VERITY_API_KEY!,
+  baseUrl: 'https://verity.backworkai.com/api/v1',
+  timeout: 30_000,
+});
 ```
 
 ## Browser Usage
@@ -238,26 +166,24 @@ try {
 </script>
 ```
 
-## Requirements
-
-- Node.js 18+ or modern browser with fetch API
-- TypeScript 4.5+ (for TypeScript projects)
-
 ## Development
 
 ```bash
+npm install
 npm run lint
 npm run format:check
 npm run build
 npm test
 ```
 
-## License
-
-MIT License - see LICENSE file for details.
+`npm test` runs a structure check by default. Set `VERITY_API_KEY` to run live API smoke checks.
 
 ## Support
 
 - Documentation: https://verity.backworkai.com/docs
 - Issues: https://github.com/backworkai/verity-ts/issues
 - Email: support@verity.backworkai.com
+
+## License
+
+MIT
