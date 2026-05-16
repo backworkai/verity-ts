@@ -4,7 +4,13 @@ export class VerityError extends Error {
   public readonly details?: Record<string, any>;
   public readonly statusCode?: number;
 
-  constructor(message: string, code?: string, hint?: string, details?: Record<string, any>, statusCode?: number) {
+  constructor(
+    message: string,
+    code?: string,
+    hint?: string,
+    details?: Record<string, any>,
+    statusCode?: number
+  ) {
     super(message);
     this.name = 'VerityError';
     this.code = code;

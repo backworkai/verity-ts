@@ -1,8 +1,14 @@
 const { VerityClient, AuthenticationError } = require('../dist/index.js');
 
 async function test() {
-  const client = new VerityClient('vrt_live_h2V4x8pL6JFHuX3y');
-  
+  if (!process.env.VERITY_API_KEY) {
+    console.log('VERITY_API_KEY not set; skipping live API smoke checks.');
+    console.log('✓ SDK structure is valid!');
+    return;
+  }
+
+  const client = new VerityClient(process.env.VERITY_API_KEY);
+
   try {
     // Test health check
     const health = await client.health();
@@ -10,7 +16,7 @@ async function test() {
   } catch (error) {
     console.error('✗ Health check failed:', error.message);
   }
-  
+
   try {
     // Test code lookup
     const result = await client.lookupCode({ code: '76942' });
@@ -23,7 +29,7 @@ async function test() {
       console.error('✗ Code lookup failed:', error.message);
     }
   }
-  
+
   console.log('\n✓ SDK structure is valid!');
 }
 

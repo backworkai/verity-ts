@@ -7,9 +7,9 @@
   "module": "dist/index.mjs",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/index.js"
     }
   },
   "files": [
@@ -17,8 +17,11 @@
   ],
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test": "node test/basic.js",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run lint && npm run format:check && npm run build"
   },
   "keywords": [
     "verity",
@@ -32,18 +35,27 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tylerbryy/verity-ts.git"
+    "url": "git+https://github.com/backworkai/verity-ts.git"
   },
   "bugs": {
-    "url": "https://github.com/tylerbryy/verity-ts/issues"
+    "url": "https://github.com/backworkai/verity-ts/issues"
   },
   "homepage": "https://verity.backworkai.com",
   "devDependencies": {
+    "@eslint/js": "^9.38.0",
     "@types/node": "^20.19.30",
+    "eslint": "^9.38.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.6.0",
+    "prettier": "^3.8.3",
     "tsup": "^8.5.1",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.48.1"
   },
   "engines": {
-    "node": ">=14"
+    "node": ">=18"
+  },
+  "dependencies": {
+    "effect": "^3.21.2"
   }
 }

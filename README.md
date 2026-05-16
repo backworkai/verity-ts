@@ -54,7 +54,7 @@ const policy = await client.getPolicy('L33831', {
 - **Full TypeScript support** - Complete type definitions included
 - **Works everywhere** - Node.js, browser, and edge runtimes
 - **Tree-shakeable** - ES modules for optimal bundle size
-- **Zero dependencies** - Uses native fetch API
+- **Reliable request layer** - Uses native fetch with Effect-powered retries, timeout handling, and response parsing
 - **Promise-based** - Modern async/await API
 
 ## Authentication
@@ -134,6 +134,20 @@ if (result.data?.pa_required) {
 }
 ```
 
+### Claim Validation
+
+```typescript
+const claim = await client.validateClaim({
+  procedureCodes: ['99213'],
+  diagnosisCodes: ['E11.9'],
+  payer: 'Medicare',
+  state: 'TX',
+});
+
+console.log('Coverage:', claim.data?.coverage_status);
+console.log('Denial risk:', claim.data?.denial_risk);
+```
+
 ### Policy Comparison
 
 ```typescript
@@ -166,6 +180,21 @@ const jurisdictions = await client.listJurisdictions();
 jurisdictions.data?.forEach((j) => {
   console.log(`${j.jurisdiction_code}: ${j.mac_name} (${j.states?.join(', ')})`);
 });
+```
+
+### Compliance and Drug Formulary
+
+```typescript
+const changes = await client.listUnreviewedChanges({ limit: 10 });
+const stats = await client.getComplianceStats();
+
+const formulary = await client.searchDrugFormularyEvidence({
+  q: 'ozempic',
+  payer: 'all',
+  limit: 5,
+});
+
+console.log(changes.data, stats.data, formulary.data);
 ```
 
 ## Error Handling
@@ -202,7 +231,7 @@ try {
 ```html
 <script type="module">
   import { VerityClient } from 'https://cdn.skypack.dev/verity-api';
-  
+
   const client = new VerityClient('vrt_live_YOUR_API_KEY');
   const result = await client.lookupCode({ code: '76942' });
   console.log(result.data);
@@ -211,8 +240,17 @@ try {
 
 ## Requirements
 
-- Node.js 14+ or modern browser with fetch API
+- Node.js 18+ or modern browser with fetch API
 - TypeScript 4.5+ (for TypeScript projects)
+
+## Development
+
+```bash
+npm run lint
+npm run format:check
+npm run build
+npm test
+```
 
 ## License
 
@@ -221,5 +259,5 @@ MIT License - see LICENSE file for details.
 ## Support
 
 - Documentation: https://verity.backworkai.com/docs
-- Issues: https://github.com/tylerbryy/verity-ts/issues
+- Issues: https://github.com/backworkai/verity-ts/issues
 - Email: support@verity.backworkai.com
