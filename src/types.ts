@@ -68,7 +68,15 @@ export interface CodeLookupData {
   rvu?: RvuData;
   policies?: PolicyMatch[];
   suggestions?: CodeSuggestion[];
+  negotiated_rates?: NegotiatedRateSummary;
   ndc_crosswalk?: NdcCrosswalk;
+}
+
+export interface NegotiatedRateSummary {
+  min_rate?: string | null;
+  max_rate?: string | null;
+  avg_rate?: string | null;
+  num_rates?: number;
 }
 
 export interface RvuData {
@@ -389,4 +397,101 @@ export interface WebhookTestData {
   success: boolean;
   error: string | null;
   created_at: string | null;
+}
+
+export interface ClaimValidationParams {
+  procedureCodes: string[];
+  payer?: string;
+  planType?: 'commercial' | 'medicare_advantage' | 'medicaid' | 'traditional_medicare' | 'exchange';
+  lineOfBusiness?: string;
+  diagnosisCodes?: string[];
+  modifiers?: string[];
+  state?: string;
+  siteOfService?: 'office' | 'outpatient_hospital' | 'asc' | 'inpatient' | 'home' | 'telehealth';
+  providerSpecialty?: string;
+  ageCategory?: 'pediatric' | 'adult' | 'medicare_age';
+  sexWhenPolicyRelevant?: 'female' | 'male' | 'other' | 'unknown';
+  idempotencyKey?: string;
+}
+
+export interface ClaimValidationData {
+  payer: string | null;
+  plan_type: string | null;
+  line_of_business: string | null;
+  state: string | null;
+  site_of_service: string | null;
+  provider_specialty: string | null;
+  modifiers: string[];
+  overall_risk: 'low' | 'medium' | 'high';
+  coverage_status: 'covered' | 'conditional' | 'not_covered' | 'unknown';
+  prior_auth_required: boolean;
+  denial_risk: 'low' | 'medium' | 'high';
+  confidence: 'high' | 'medium' | 'low';
+  documentation_requirements: string[];
+  policy_sources: Array<Record<string, any>>;
+  requires_manual_review: boolean;
+  known_gaps: string[];
+  codes: Array<Record<string, any>>;
+  mac?: {
+    name?: string;
+    jurisdiction?: string;
+  };
+}
+
+export interface UnreviewedChange {
+  diff_id: number;
+  policy_id: string;
+  policy_title: string;
+  policy_type: string;
+  payer_name: string | null;
+  change_type: string;
+  change_summary: string;
+  changed_at: string;
+}
+
+export interface ComplianceStats {
+  total_changes_30d: number;
+  acknowledged_count: number;
+  unreviewed_count: number;
+  acknowledgment_rate: number;
+  critical_unreviewed: number;
+}
+
+export interface AcknowledgeChangeData {
+  id: number;
+  acknowledged: boolean;
+  already_acked: boolean;
+}
+
+export interface BulkAcknowledgeChangesData {
+  acknowledged: number;
+  already_acked: number;
+  total: number;
+}
+
+export interface DrugFormularyEvidence {
+  source: 'cvs_caremark' | 'express_scripts' | 'uhc';
+  payer_name: string;
+  pbm_name: string | null;
+  formulary_name: string | null;
+  plan_year: number | null;
+  effective_date: string | null;
+  drug_name: string;
+  matched_text: string | null;
+  therapeutic_category: string | null;
+  drug_class: string | null;
+  tier: string | null;
+  coverage_status: string | null;
+  requirements?: {
+    prior_authorization?: boolean | string | null;
+    step_therapy?: boolean | string | null;
+    quantity_limit?: boolean | string | null;
+    specialty?: boolean | null;
+    text?: string | null;
+    codes?: string[];
+  };
+  alternatives: string | null;
+  preferred_alternatives: string | null;
+  source_url: string | null;
+  source_page: number | null;
 }

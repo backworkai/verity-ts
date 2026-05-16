@@ -9,7 +9,6 @@ import type {
   PriorAuthResearchResult,
   SpendingByCodeData,
   Jurisdiction,
-  Pagination,
   BatchCodeLookupParams,
   BatchCodeLookupData,
   CoverageEvaluateParams,
@@ -17,8 +16,18 @@ import type {
   WebhookEndpoint,
   WebhookCreateData,
   WebhookTestData,
+  ClaimValidationParams,
+  ClaimValidationData,
+  UnreviewedChange,
+  ComplianceStats,
+  AcknowledgeChangeData,
+  BulkAcknowledgeChangesData,
+  DrugFormularyEvidence,
 } from './types';
 import { VerityError } from './errors';
+import { Effect, Schedule } from 'effect';
+
+type RequestMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
 
 export class VerityClient {
   private apiKey: string;
@@ -44,7 +53,7 @@ export class VerityClient {
   }
 
   private async request<T>(
-    method: string,
+    method: RequestMethod,
     path: string,
     options: {
       params?: Record<string, any>;
@@ -52,8 +61,20 @@ export class VerityClient {
       headers?: Record<string, string>;
     } = {}
   ): Promise<ApiResponse<T>> {
+    return Effect.runPromise(this.requestEffect<T>(method, path, options));
+  }
+
+  private requestEffect<T>(
+    method: RequestMethod,
+    path: string,
+    options: {
+      params?: Record<string, any>;
+      body?: Record<string, any>;
+      headers?: Record<string, string>;
+    } = {}
+  ): Effect.Effect<ApiResponse<T>, VerityError> {
     const url = new URL(`${this.baseUrl}${path}`);
-    
+
     if (options.params) {
       Object.entries(options.params).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
@@ -63,7 +84,7 @@ export class VerityClient {
     }
 
     const headers: Record<string, string> = {
-      'Authorization': `Bearer ${this.apiKey}`,
+      Authorization: `Bearer ${this.apiKey}`,
       'User-Agent': 'verity-ts/1.0.0',
       ...options.headers,
     };
@@ -72,42 +93,76 @@ export class VerityClient {
       headers['Content-Type'] = 'application/json';
     }
 
+    const fetchResponse = Effect.tryPromise({
+      try: () => this.fetchWithTimeout(url.toString(), method, headers, options.body),
+      catch: (error) => this.toNetworkError(error),
+    }).pipe(
+      Effect.retry(Schedule.exponential('100 millis').pipe(Schedule.compose(Schedule.recurs(2))))
+    );
+
+    return fetchResponse.pipe(
+      Effect.flatMap((response) =>
+        this.parseResponse<T>(response).pipe(
+          Effect.flatMap((data) =>
+            response.ok
+              ? Effect.succeed(data)
+              : Effect.fail(VerityError.fromResponse(response.status, data))
+          )
+        )
+      )
+    );
+  }
+
+  private async fetchWithTimeout(
+    url: string,
+    method: RequestMethod,
+    headers: Record<string, string>,
+    body?: Record<string, any>
+  ): Promise<Response> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
     try {
-      const response = await fetch(url.toString(), {
+      return await fetch(url, {
         method,
         headers,
-        body: options.body ? JSON.stringify(options.body) : undefined,
+        body: body ? JSON.stringify(body) : undefined,
         signal: controller.signal,
       });
-
+    } finally {
       clearTimeout(timeoutId);
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw VerityError.fromResponse(response.status, data);
-      }
-
-      return data;
-    } catch (error) {
-      clearTimeout(timeoutId);
-      
-      if (error instanceof VerityError) {
-        throw error;
-      }
-      
-      if (error instanceof Error && error.name === 'AbortError') {
-        throw new VerityError('Request timeout', 'TIMEOUT');
-      }
-      
-      throw new VerityError(
-        error instanceof Error ? error.message : 'Unknown error',
-        'NETWORK_ERROR'
-      );
     }
+  }
+
+  private parseResponse<T>(response: Response): Effect.Effect<ApiResponse<T>, VerityError> {
+    return Effect.tryPromise({
+      try: async () => {
+        const text = await response.text();
+        return text ? JSON.parse(text) : { success: true, data: undefined };
+      },
+      catch: (error) =>
+        new VerityError(
+          error instanceof Error
+            ? `Invalid JSON response: ${error.message}`
+            : 'Invalid JSON response',
+          'INVALID_RESPONSE'
+        ),
+    });
+  }
+
+  private toNetworkError(error: unknown): VerityError {
+    if (error instanceof VerityError) {
+      return error;
+    }
+
+    if (error instanceof Error && error.name === 'AbortError') {
+      return new VerityError('Request timeout', 'TIMEOUT');
+    }
+
+    return new VerityError(
+      error instanceof Error ? error.message : 'Unknown error',
+      'NETWORK_ERROR'
+    );
   }
 
   /**
@@ -124,7 +179,7 @@ export class VerityClient {
     code: string;
     codeSystem?: 'CPT' | 'HCPCS' | 'ICD10CM' | 'ICD10PCS' | 'NDC';
     jurisdiction?: string;
-    include?: Array<'rvu' | 'policies'>;
+    include?: Array<'rvu' | 'policies' | 'rates'>;
     fuzzy?: boolean;
   }): Promise<ApiResponse<CodeLookupData>> {
     const queryParams: Record<string, any> = {
@@ -189,7 +244,7 @@ export class VerityClient {
     }
   ): Promise<ApiResponse<PolicyDetail>> {
     const params: Record<string, any> = {};
-    
+
     if (options?.include) {
       params.include = options.include.join(',');
     }
@@ -305,6 +360,51 @@ export class VerityClient {
   }
 
   /**
+   * Validate coverage and denial risk for a claim.
+   */
+  async validateClaim(params: ClaimValidationParams): Promise<ApiResponse<ClaimValidationData>> {
+    return this.validateClaimAtPath('/claims/validate', params);
+  }
+
+  /**
+   * Validate a claim through the deprecated compatibility endpoint.
+   */
+  async validateClaimLegacy(
+    params: ClaimValidationParams
+  ): Promise<ApiResponse<ClaimValidationData>> {
+    return this.validateClaimAtPath('/claim-validation', params);
+  }
+
+  private async validateClaimAtPath(
+    path: '/claims/validate' | '/claim-validation',
+    params: ClaimValidationParams
+  ): Promise<ApiResponse<ClaimValidationData>> {
+    const headers: Record<string, string> = {};
+    if (params.idempotencyKey) {
+      headers['X-Idempotency-Key'] = params.idempotencyKey;
+    }
+
+    const body: Record<string, any> = {
+      procedure_codes: params.procedureCodes,
+    };
+
+    if (params.payer) body.payer = params.payer;
+    if (params.planType) body.plan_type = params.planType;
+    if (params.lineOfBusiness) body.line_of_business = params.lineOfBusiness;
+    if (params.diagnosisCodes) body.diagnosis_codes = params.diagnosisCodes;
+    if (params.modifiers) body.modifiers = params.modifiers;
+    if (params.state) body.state = params.state;
+    if (params.siteOfService) body.site_of_service = params.siteOfService;
+    if (params.providerSpecialty) body.provider_specialty = params.providerSpecialty;
+    if (params.ageCategory) body.age_category = params.ageCategory;
+    if (params.sexWhenPolicyRelevant) {
+      body.sex_when_policy_relevant = params.sexWhenPolicyRelevant;
+    }
+
+    return this.request<ClaimValidationData>('POST', path, { body, headers });
+  }
+
+  /**
    * Research prior authorization requirements using AI-powered web research.
    * By default runs asynchronously - returns a research_id for polling.
    * Set sync: true to wait for completion.
@@ -378,7 +478,9 @@ export class VerityClient {
   /**
    * Evaluate coverage for a policy against provided parameters
    */
-  async evaluateCoverage(params: CoverageEvaluateParams): Promise<ApiResponse<CoverageEvaluationData>> {
+  async evaluateCoverage(
+    params: CoverageEvaluateParams
+  ): Promise<ApiResponse<CoverageEvaluationData>> {
     const body: Record<string, any> = {
       policy_id: params.policyId,
       parameters: params.parameters,
@@ -412,11 +514,14 @@ export class VerityClient {
   /**
    * Update an existing webhook endpoint
    */
-  async updateWebhook(id: number, params: {
-    url?: string;
-    events?: string[];
-    status?: string;
-  }): Promise<ApiResponse<WebhookEndpoint>> {
+  async updateWebhook(
+    id: number,
+    params: {
+      url?: string;
+      events?: string[];
+      status?: string;
+    }
+  ): Promise<ApiResponse<WebhookEndpoint>> {
     const body: Record<string, any> = {};
 
     if (params.url) body.url = params.url;
@@ -438,5 +543,83 @@ export class VerityClient {
    */
   async testWebhook(id: number): Promise<ApiResponse<WebhookTestData>> {
     return this.request<WebhookTestData>('POST', `/webhooks/${id}/test`);
+  }
+
+  /**
+   * List policy changes that have not been acknowledged.
+   */
+  async listUnreviewedChanges(params?: {
+    changeType?: string;
+    cursor?: string;
+    limit?: number;
+  }): Promise<ApiResponse<UnreviewedChange[]>> {
+    const queryParams: Record<string, any> = {
+      limit: params?.limit || 50,
+    };
+
+    if (params?.changeType) queryParams.change_type = params.changeType;
+    if (params?.cursor) queryParams.cursor = params.cursor;
+
+    return this.request<UnreviewedChange[]>('GET', '/compliance/unreviewed', {
+      params: queryParams,
+    });
+  }
+
+  /**
+   * Acknowledge a single policy change.
+   */
+  async acknowledgeChange(params: {
+    diffId: number;
+    notes?: string;
+  }): Promise<ApiResponse<AcknowledgeChangeData>> {
+    const body: Record<string, any> = {
+      diff_id: params.diffId,
+    };
+
+    if (params.notes) body.notes = params.notes;
+
+    return this.request<AcknowledgeChangeData>('POST', '/compliance/ack', { body });
+  }
+
+  /**
+   * Acknowledge multiple policy changes.
+   */
+  async bulkAcknowledgeChanges(params: {
+    diffIds: number[];
+    notes?: string;
+  }): Promise<ApiResponse<BulkAcknowledgeChangesData>> {
+    const body: Record<string, any> = {
+      diff_ids: params.diffIds,
+    };
+
+    if (params.notes) body.notes = params.notes;
+
+    return this.request<BulkAcknowledgeChangesData>('POST', '/compliance/ack/bulk', { body });
+  }
+
+  /**
+   * Get compliance dashboard statistics.
+   */
+  async getComplianceStats(): Promise<ApiResponse<ComplianceStats>> {
+    return this.request<ComplianceStats>('GET', '/compliance/stats');
+  }
+
+  /**
+   * Search commercial pharmacy-benefit formulary evidence.
+   */
+  async searchDrugFormularyEvidence(params: {
+    q: string;
+    payer?: 'all' | 'cvs_caremark' | 'express_scripts' | 'uhc';
+    limit?: number;
+  }): Promise<ApiResponse<DrugFormularyEvidence[]>> {
+    const queryParams: Record<string, any> = {
+      q: params.q,
+      payer: params.payer || 'all',
+      limit: params.limit || 25,
+    };
+
+    return this.request<DrugFormularyEvidence[]>('GET', '/drugs/formulary', {
+      params: queryParams,
+    });
   }
 }

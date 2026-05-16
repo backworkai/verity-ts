@@ -2,7 +2,7 @@ const { VerityClient, AuthenticationError } = require('../dist/index.js');
 
 async function test() {
   const client = new VerityClient('vrt_live_h2V4x8pL6JFHuX3y');
-  
+
   try {
     // Test health check
     const health = await client.health();
@@ -10,7 +10,7 @@ async function test() {
   } catch (error) {
     console.error('✗ Health check failed:', error.message);
   }
-  
+
   try {
     // Test code lookup
     const result = await client.lookupCode({ code: '76942' });
@@ -23,7 +23,7 @@ async function test() {
       console.error('✗ Code lookup failed:', error.message);
     }
   }
-  
+
   console.log('\n✓ SDK structure is valid!');
 }
 
