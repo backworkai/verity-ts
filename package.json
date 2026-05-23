@@ -1,6 +1,6 @@
 {
-  "name": "verity-api",
-  "version": "1.0.1",
+  "name": "@backwork/verity-api",
+  "version": "1.0.2",
   "description": "TypeScript/JavaScript SDK for Verity API - Medicare coverage policies and prior authorization",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
