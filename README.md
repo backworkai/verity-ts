@@ -83,9 +83,11 @@ const claim = await client.validateClaim({
   diagnosisCodes: ['E11.9'],
   payer: 'Medicare',
   state: 'TX',
+  dateOfService: '2026-05-23',
 });
 
 console.log(claim.data?.coverage_status, claim.data?.denial_risk);
+console.log(claim.data?.issues, claim.data?.matched_policies);
 ```
 
 ### Coverage, Spending, and Compliance
@@ -96,6 +98,7 @@ const criteria = await client.searchCriteria({
   section: 'indications',
   limit: 10,
 });
+console.log(criteria.data?.[0]?.policy_id, criteria.data?.[0]?.policy_title);
 
 const spending = await client.getSpendingByCode({
   codes: ['T1019', 'T1020'],

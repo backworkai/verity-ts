@@ -55,9 +55,11 @@ export interface HealthStatus {
   timestamp: string;
 }
 
+export type CodeSystem = 'CPT' | 'HCPCS' | 'ICD10CM' | 'ICD10PCS' | 'NDC' | 'UNKNOWN' | 'unknown';
+
 export interface CodeLookupData {
   code: string;
-  code_system: 'CPT' | 'HCPCS' | 'ICD10CM' | 'ICD10PCS' | 'NDC' | 'unknown';
+  code_system: CodeSystem;
   found: boolean;
   description: string | null;
   short_description?: string | null;
@@ -191,12 +193,28 @@ export interface PayerInfo {
 
 export interface CriteriaBlock {
   block_id?: string;
+  criteria_id?: string;
   text?: string;
   logic_ast?: Record<string, any> | null;
   tags?: string[];
   requires_manual_review?: boolean;
   confidence_score?: number;
+  policy_id?: string;
+  policy_title?: string;
+  policy_type?: string;
+  jurisdiction?: string | null;
+  effective_date?: string | null;
+  section?: 'indications' | 'limitations' | 'documentation' | 'frequency' | 'other' | string;
+  policy?: {
+    policy_id: string;
+    title: string;
+    policy_type: string;
+    jurisdiction?: string | null;
+    effective_date?: string | null;
+  };
 }
+
+export type CriteriaSearchResult = CriteriaBlock;
 
 export interface Attachment {
   file_type?: string;
@@ -407,6 +425,7 @@ export interface ClaimValidationParams {
   diagnosisCodes?: string[];
   modifiers?: string[];
   state?: string;
+  dateOfService?: string;
   siteOfService?: 'office' | 'outpatient_hospital' | 'asc' | 'inpatient' | 'home' | 'telehealth';
   providerSpecialty?: string;
   ageCategory?: 'pediatric' | 'adult' | 'medicare_age';
@@ -414,24 +433,59 @@ export interface ClaimValidationParams {
   idempotencyKey?: string;
 }
 
+export interface PolicySource {
+  source_id?: string;
+  policy_id?: string;
+  title?: string;
+  policy_type?: string;
+  jurisdiction?: string | null;
+  source_url?: string | null;
+  effective_date?: string | null;
+  last_verified_at?: string | null;
+}
+
+export interface ClaimValidationCodeResult {
+  code: string;
+  code_type: string;
+  description: string | null;
+  coverage_status: 'covered' | 'conditional' | 'not_covered' | 'unknown';
+  prior_auth_required: boolean | null;
+  pa_required?: boolean | null;
+  denial_risk: 'low' | 'medium' | 'high';
+  confidence: 'high' | 'medium' | 'low';
+  documentation_requirements: string[];
+  policy_sources: PolicySource[];
+  effective_date: string | null;
+  last_verified_at: string | null;
+  requires_manual_review: boolean;
+  known_gaps: string[];
+  issues: string[];
+  policy_count: number;
+}
+
 export interface ClaimValidationData {
   payer: string | null;
   plan_type: string | null;
   line_of_business: string | null;
   state: string | null;
+  date_of_service: string | null;
   site_of_service: string | null;
   provider_specialty: string | null;
   modifiers: string[];
   overall_risk: 'low' | 'medium' | 'high';
   coverage_status: 'covered' | 'conditional' | 'not_covered' | 'unknown';
-  prior_auth_required: boolean;
+  prior_auth_required: boolean | null;
   denial_risk: 'low' | 'medium' | 'high';
   confidence: 'high' | 'medium' | 'low';
   documentation_requirements: string[];
-  policy_sources: Array<Record<string, any>>;
+  policy_sources: PolicySource[];
+  matched_policies: PolicySource[];
+  effective_date: string | null;
+  last_verified_at: string | null;
   requires_manual_review: boolean;
   known_gaps: string[];
-  codes: Array<Record<string, any>>;
+  issues: string[];
+  codes: ClaimValidationCodeResult[];
   mac?: {
     name?: string;
     jurisdiction?: string;
@@ -447,6 +501,22 @@ export interface UnreviewedChange {
   change_type: string;
   change_summary: string;
   changed_at: string;
+}
+
+export interface PolicyChange {
+  diff_id?: number;
+  policy_id: string;
+  policy_title?: string;
+  policy_type?: string;
+  payer_name?: string | null;
+  old_version?: string | null;
+  new_version?: string | null;
+  change_type: string;
+  change_summary?: string | null;
+  changed_fields?: string[];
+  timestamp?: string;
+  changed_at?: string;
+  details?: Record<string, any>;
 }
 
 export interface ComplianceStats {
