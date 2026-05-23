@@ -6,6 +6,8 @@ The SDK is Promise-based, fully typed, and uses native `fetch` with an Effect-ba
 
 ## Installation
 
+The current public npm package is `verity-api@1.0.0`. This repository is prepared for the next `1.0.1` release with the Effect-backed request layer and release automation.
+
 ```bash
 npm install verity-api
 ```
@@ -183,7 +185,7 @@ npm test
 
 The package publishes to npm as `verity-api`.
 
-1. Configure npm Trusted Publishing for `backworkai/verity-ts`, workflow `release.yml`, package `verity-api`.
+1. Configure npm Trusted Publishing for `backworkai/verity-ts`, workflow `release.yml`, environment `npm`, package `verity-api`.
 2. Update `package.json` to the new version.
 3. Push a matching tag, for example `v1.0.1`.
 4. The release workflow installs with `npm ci`, runs lint/format/build/tests, runs `npm pack --dry-run`, and publishes with npm provenance.
