@@ -6,10 +6,10 @@ The SDK is Promise-based, fully typed, and uses native `fetch` with an Effect-ba
 
 ## Installation
 
-The current public npm package is `verity-api@1.0.0`. This repository is prepared for the next `1.0.1` release with the Effect-backed request layer and release automation.
+The npm package publishes under the Backwork scope as `@backwork/verity-api`.
 
 ```bash
-npm install verity-api
+npm install @backwork/verity-api
 ```
 
 Requires Node.js 18 or newer, or a modern browser runtime with `fetch`.
@@ -17,7 +17,7 @@ Requires Node.js 18 or newer, or a modern browser runtime with `fetch`.
 ## Quick Start
 
 ```typescript
-import { VerityClient } from 'verity-api';
+import { VerityClient } from '@backwork/verity-api';
 
 const client = new VerityClient(process.env.VERITY_API_KEY!);
 
@@ -130,7 +130,7 @@ import {
   RateLimitError,
   ValidationError,
   VerityError,
-} from 'verity-api';
+} from '@backwork/verity-api';
 
 try {
   const result = await client.lookupCode({ code: '76942' });
@@ -163,7 +163,7 @@ const client = new VerityClient({
 
 ```html
 <script type="module">
-  import { VerityClient } from 'https://cdn.skypack.dev/verity-api';
+  import { VerityClient } from 'https://cdn.skypack.dev/@backwork/verity-api';
 
   const client = new VerityClient('vrt_live_YOUR_API_KEY');
   const result = await client.lookupCode({ code: '76942' });
@@ -183,11 +183,11 @@ npm test
 
 ## Release
 
-The package publishes to npm as `verity-api`.
+The package publishes to npm as `@backwork/verity-api`.
 
-1. Configure npm Trusted Publishing for `backworkai/verity-ts`, workflow `release.yml`, environment `npm`, package `verity-api`.
+1. Configure npm Trusted Publishing for `backworkai/verity-ts`, workflow `release.yml`, environment `npm`, package `@backwork/verity-api`.
 2. Update `package.json` to the new version.
-3. Push a matching tag, for example `v1.0.1`.
+3. Push a matching tag, for example `v1.0.2`.
 4. The release workflow installs with `npm ci`, runs lint/format/build/tests, runs `npm pack --dry-run`, and publishes with npm provenance.
 
 `npm test` runs a structure check by default. Set `VERITY_API_KEY` to run live API smoke checks.
