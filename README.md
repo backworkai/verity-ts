@@ -179,6 +179,15 @@ npm run build
 npm test
 ```
 
+## Release
+
+The package publishes to npm as `verity-api`.
+
+1. Configure npm Trusted Publishing for `backworkai/verity-ts`, workflow `release.yml`, package `verity-api`.
+2. Update `package.json` to the new version.
+3. Push a matching tag, for example `v1.0.1`.
+4. The release workflow installs with `npm ci`, runs lint/format/build/tests, runs `npm pack --dry-run`, and publishes with npm provenance.
+
 `npm test` runs a structure check by default. Set `VERITY_API_KEY` to run live API smoke checks.
 
 ## Support
