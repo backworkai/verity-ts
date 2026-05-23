@@ -7,6 +7,7 @@ import type {
   PolicyDetail,
   PriorAuthResult,
   PriorAuthResearchResult,
+  CriteriaSearchResult,
   SpendingByCodeData,
   Jurisdiction,
   BatchCodeLookupParams,
@@ -23,6 +24,7 @@ import type {
   AcknowledgeChangeData,
   BulkAcknowledgeChangesData,
   DrugFormularyEvidence,
+  PolicyChange,
 } from './types';
 import { VerityError } from './errors';
 import { Effect, Schedule } from 'effect';
@@ -291,7 +293,7 @@ export class VerityClient {
     changeType?: string;
     cursor?: string;
     limit?: number;
-  }): Promise<ApiResponse<any[]>> {
+  }): Promise<ApiResponse<PolicyChange[]>> {
     const queryParams: Record<string, any> = {
       limit: params?.limit || 50,
     };
@@ -301,7 +303,7 @@ export class VerityClient {
     if (params?.changeType) queryParams.change_type = params.changeType;
     if (params?.cursor) queryParams.cursor = params.cursor;
 
-    return this.request<any[]>('GET', '/policies/changes', { params: queryParams });
+    return this.request<PolicyChange[]>('GET', '/policies/changes', { params: queryParams });
   }
 
   /**
@@ -314,7 +316,7 @@ export class VerityClient {
     jurisdiction?: string;
     cursor?: string;
     limit?: number;
-  }): Promise<ApiResponse<any[]>> {
+  }): Promise<ApiResponse<CriteriaSearchResult[]>> {
     const queryParams: Record<string, any> = {
       q: params.q,
       limit: params.limit || 50,
@@ -325,7 +327,9 @@ export class VerityClient {
     if (params.jurisdiction) queryParams.jurisdiction = params.jurisdiction;
     if (params.cursor) queryParams.cursor = params.cursor;
 
-    return this.request<any[]>('GET', '/coverage/criteria', { params: queryParams });
+    return this.request<CriteriaSearchResult[]>('GET', '/coverage/criteria', {
+      params: queryParams,
+    });
   }
 
   /**
@@ -400,6 +404,7 @@ export class VerityClient {
     if (params.diagnosisCodes) body.diagnosis_codes = params.diagnosisCodes;
     if (params.modifiers) body.modifiers = params.modifiers;
     if (params.state) body.state = params.state;
+    if (params.dateOfService) body.date_of_service = params.dateOfService;
     if (params.siteOfService) body.site_of_service = params.siteOfService;
     if (params.providerSpecialty) body.provider_specialty = params.providerSpecialty;
     if (params.ageCategory) body.age_category = params.ageCategory;
