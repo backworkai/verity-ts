@@ -1,6 +1,6 @@
 {
   "name": "verity-api",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "TypeScript/JavaScript SDK for Verity API - Medicare coverage policies and prior authorization",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -15,8 +15,12 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "guard:release-tag": "node -e \"const pkg=require('./package.json'); const expected='v'+pkg.version; const actual=process.env.GITHUB_REF_NAME; if (actual !== expected) { throw new Error('Release ref '+(actual || '<unset>')+' does not match package version '+expected); }\"",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
